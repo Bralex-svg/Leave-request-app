@@ -1,0 +1,50 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: #f4f3ef;
+}
+
+body {
+  font-family: 'Public Sans', sans-serif;
+  color: #1c2321;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+a {
+  color: #1f5c4d;
+  text-decoration: none;
+}
+
+a:hover {
+  color: #16453a;
+  text-decoration: underline;
+}
+
+::placeholder {
+  color: #a8a69e;
+}
+
+input,
+select,
+textarea,
+button {
+  font-family: 'Public Sans', sans-serif;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #d8d5cb;
+  border-radius: 6px;
+}
