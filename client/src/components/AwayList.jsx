@@ -9,7 +9,10 @@ export default function AwayList({ title, away, emptyText }) {
             {a.initials}
           </div>
           <div className="min-w-0 flex-1">
-            <div className="truncate text-[13px] font-semibold">{a.name}</div>
+            <div className="flex items-baseline gap-1.5">
+              <div className="truncate text-[13px] font-semibold">{a.name}</div>
+              {a.department && <div className="flex-shrink-0 text-[11px] text-muted">· {a.department}</div>}
+            </div>
             <div className="truncate text-[11.5px] text-muted">{a.detail}</div>
           </div>
         </div>

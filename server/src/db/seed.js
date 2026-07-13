@@ -1,6 +1,9 @@
 import bcrypt from 'bcryptjs';
 import { pool } from './pool.js';
+import schoolProfile from './profiles/school.js';
+import hospitalProfile from './profiles/hospital.js';
 
+const PROFILES = { school: schoolProfile, hospital: hospitalProfile };
 const DEMO_PASSWORD = 'password123';
 const YEAR = 2026;
 
@@ -15,58 +18,23 @@ const LEAVE_TYPES = [
   { key: 'unpaid', name: 'Unpaid', emoji: '⏸️', tint: '#EFEDE6', color: '#4A554F', entitlement: null, chain: 'hod_then_hr', active: false }
 ];
 
-const DEPARTMENTS = ['Clinical Nursing', 'Midwifery', 'Public Health', 'Administration'];
+async function seed(profileName) {
+  const profile = PROFILES[profileName];
+  if (!profile) {
+    console.error(`Unknown seed profile "${profileName}". Available: ${Object.keys(PROFILES).join(', ')}`);
+    process.exitCode = 1;
+    return;
+  }
 
-// role: staff | hod | hr | principal
-const USERS = [
-  { name: 'Afia Owusu', email: 'afia.owusu@dnmc.edu.gh', role: 'staff', dept: 'Clinical Nursing', title: 'Nurse Tutor, Clinical Nursing' },
-  { name: 'Dr. Salifu Adam', email: 'salifu.adam@dnmc.edu.gh', role: 'hod', dept: 'Clinical Nursing', title: 'Head, Clinical Nursing' },
-  { name: 'Dr. Comfort Yeboah', email: 'comfort.yeboah@dnmc.edu.gh', role: 'hod', dept: 'Midwifery', title: 'Head, Midwifery' },
-  { name: 'Dr. Musah Iddrisu', email: 'musah.iddrisu@dnmc.edu.gh', role: 'hod', dept: 'Public Health', title: 'Head, Public Health' },
-  { name: 'Yussif Alhassan', email: 'yussif.alhassan@dnmc.edu.gh', role: 'hod', dept: 'Administration', title: 'Head, Administration' },
-  { name: 'Mary Kipo', email: 'mary.kipo@dnmc.edu.gh', role: 'hr', dept: 'Administration', title: 'HR & Admin Officer' },
-  { name: 'Dr. J. K. Nabila', email: 'jk.nabila@dnmc.edu.gh', role: 'principal', dept: null, title: 'College Principal' },
-  { name: 'Kwabena Mensah', email: 'kwabena.mensah@dnmc.edu.gh', role: 'staff', dept: 'Midwifery', title: 'Tutor, Midwifery' },
-  { name: 'Zeinab Alhassan', email: 'zeinab.alhassan@dnmc.edu.gh', role: 'staff', dept: 'Clinical Nursing', title: 'Tutor, Clinical Nursing' },
-  { name: 'Yaw Darko', email: 'yaw.darko@dnmc.edu.gh', role: 'staff', dept: 'Public Health', title: 'Tutor, Public Health' },
-  { name: 'Efua Asante', email: 'efua.asante@dnmc.edu.gh', role: 'staff', dept: 'Midwifery', title: 'Tutor, Midwifery' },
-  { name: 'Ibrahim Seidu', email: 'ibrahim.seidu@dnmc.edu.gh', role: 'staff', dept: 'Administration', title: 'Admin Assistant' },
-  { name: 'Akosua Boateng', email: 'akosua.boateng@dnmc.edu.gh', role: 'staff', dept: 'Public Health', title: 'Tutor, Public Health' }
-];
+  const { orgName, departments: DEPARTMENTS, users: USERS, staffBalances: STAFF_BALANCES, requests: REQUESTS, deptHod, demoLogins } = profile;
 
-// remaining/entitlement per staff for annual/sick/casual/study, from prototype staffDir
-const STAFF_BALANCES = {
-  'Afia Owusu': { annual: 22, sick: 13, casual: 4, study: 15 },
-  'Kwabena Mensah': { annual: 18, sick: 15, casual: 6, study: 20 },
-  'Zeinab Alhassan': { annual: 25, sick: 11, casual: 7, study: 20 },
-  'Yaw Darko': { annual: 12, sick: 15, casual: 5, study: 18 },
-  'Efua Asante': { annual: 30, sick: 14, casual: 7, study: 20 },
-  'Ibrahim Seidu': { annual: 20, sick: 9, casual: 3, study: 20 },
-  'Akosua Boateng': { annual: 27, sick: 15, casual: 6, study: 20 }
-};
-
-const REQUESTS = [
-  { staff: 'Afia Owusu', type: 'annual', start: '2026-08-24', end: '2026-08-28', days: 5, status: 'pending_hod', submitted: '2026-07-09', reason: 'Family travel to Tamale for my sister’s wedding.' },
-  { staff: 'Afia Owusu', type: 'study', start: '2026-09-14', end: '2026-09-18', days: 5, status: 'approved', submitted: '2026-06-28', reason: 'MSc Nursing residential week, University of Ghana.' },
-  { staff: 'Afia Owusu', type: 'sick', start: '2026-06-02', end: '2026-06-03', days: 2, status: 'approved', submitted: '2026-06-02', reason: 'Malaria treatment.' },
-  { staff: 'Kwabena Mensah', type: 'casual', start: '2026-07-15', end: '2026-07-15', days: 1, status: 'pending_hod', submitted: '2026-07-10', reason: 'Attending a naming ceremony.' },
-  { staff: 'Zeinab Alhassan', type: 'compassionate', start: '2026-07-13', end: '2026-07-17', days: 5, status: 'pending_hod', submitted: '2026-07-11', reason: 'Bereavement — funeral arrangements in Wa.' },
-  { staff: 'Yaw Darko', type: 'annual', start: '2026-08-03', end: '2026-08-14', days: 10, status: 'pending_hr', submitted: '2026-07-05', reason: 'Annual family holiday.' },
-  { staff: 'Efua Asante', type: 'maternity', start: '2026-09-01', end: '2026-11-24', days: 60, status: 'approved', submitted: '2026-06-15', reason: 'Maternity leave — expected delivery early September.' },
-  { staff: 'Ibrahim Seidu', type: 'sick', start: '2026-07-08', end: '2026-07-10', days: 3, status: 'approved', submitted: '2026-07-08', reason: 'Medical review at Damongo hospital.' },
-  { staff: 'Akosua Boateng', type: 'study', start: '2026-07-20', end: '2026-07-24', days: 5, status: 'declined', submitted: '2026-06-30', reason: 'Short course overlapping with exam invigilation.' }
-];
-
-const deptHod = { 'Clinical Nursing': 'Dr. Salifu Adam', 'Midwifery': 'Dr. Comfort Yeboah', 'Public Health': 'Dr. Musah Iddrisu', 'Administration': 'Yussif Alhassan' };
-
-async function seed() {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
 
     const orgRes = await client.query(
       `INSERT INTO organisations (name, leave_year_start_month) VALUES ($1, $2) RETURNING id`,
-      ['Saint Annes Hospital, Damongo', 1]
+      [orgName, 1]
     );
     const orgId = orgRes.rows[0].id;
 
@@ -167,13 +135,12 @@ async function seed() {
     }
 
     await client.query('COMMIT');
-    console.log('Seed complete.');
+    console.log(`Seed complete — profile "${profileName}" (${orgName}).`);
     console.log(`Demo password for all seeded users: ${DEMO_PASSWORD}`);
     console.log('Demo logins:');
-    console.log('  staff     afia.owusu@dnmc.edu.gh');
-    console.log('  hod       salifu.adam@dnmc.edu.gh');
-    console.log('  hr        mary.kipo@dnmc.edu.gh');
-    console.log('  principal jk.nabila@dnmc.edu.gh');
+    for (const [role, email] of demoLogins) {
+      console.log(`  ${role.padEnd(24)} ${email}`);
+    }
   } catch (err) {
     await client.query('ROLLBACK');
     console.error('Seed failed:', err);
@@ -184,4 +151,5 @@ async function seed() {
   }
 }
 
-seed();
+const profileArg = process.argv[2] || process.env.SEED_PROFILE || 'school';
+seed(profileArg);

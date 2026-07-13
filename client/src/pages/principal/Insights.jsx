@@ -3,6 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useOrganisation } from '../../context/OrganisationContext';
 import { api } from '../../lib/api';
 import { getGreeting, firstName } from '../../lib/greeting';
+import AwayList from '../../components/AwayList';
 
 function deltaColor(card) {
   if (card.label.startsWith('Pending') && card.value !== '0') return '#8A6116';
@@ -14,10 +15,12 @@ export default function Insights() {
   const { user } = useAuth();
   const { orgName } = useOrganisation();
   const [data, setData] = useState(null);
+  const [away, setAway] = useState([]);
   const todayLine = new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
   useEffect(() => {
     api.get('/insights').then(setData);
+    api.get('/staff/away').then((d) => setAway(d.away));
   }, []);
 
   if (!data) return null;
@@ -81,6 +84,7 @@ export default function Insights() {
             <div className="mb-1.5 text-[12px] font-bold uppercase tracking-wider text-[#8A6116]">Coverage alert</div>
             <div className="text-[13px] leading-[1.5] text-[#5C450F]">{data.coverageAlert}</div>
           </div>
+          <AwayList title="Who's away this week" away={away} emptyText="Nobody is away or starting leave this week." />
         </div>
       </div>
     </div>

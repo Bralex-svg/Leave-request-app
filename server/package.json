@@ -8,7 +8,11 @@
     "start": "node src/index.js",
     "migrate": "node src/db/migrate.js",
     "seed": "node src/db/seed.js",
-    "setup": "npm run migrate && npm run seed"
+    "seed:school": "node src/db/seed.js school",
+    "seed:hospital": "node src/db/seed.js hospital",
+    "setup": "npm run migrate && npm run seed",
+    "setup:school": "npm run migrate && npm run seed:school",
+    "setup:hospital": "npm run migrate && npm run seed:hospital"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

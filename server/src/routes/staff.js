@@ -79,11 +79,12 @@ router.get(
  *     description: >
  *       Backs the "Who's away this week" card, and excludes the caller's own leave.
  *       Scoped to the caller's own department for `staff` and `hod` (their day-to-day
- *       colleagues); organisation-wide for `hr` and `principal`, who have institution-wide oversight.
+ *       colleagues); organisation-wide for `hr` and `principal`, who have institution-wide
+ *       oversight — for those two roles each entry also includes the person's department.
  *     security: [{ cookieAuth: [] }]
  *     responses:
  *       200:
- *         description: Up to 6 people, soonest-starting first.
+ *         description: Soonest-starting first.
  *         content:
  *           application/json:
  *             schema:
@@ -96,7 +97,9 @@ router.get(
  *                     properties:
  *                       name: { type: string }
  *                       initials: { type: string }
- *                       detail: { type: string, example: "Sick · back 14 Jul" }
+ *                       department: { type: string, nullable: true, description: Only populated for org-wide (HR/Principal) views. }
+ *                       startingSoon: { type: boolean, description: True if their leave hasn't started yet (starts within the next 7 days). }
+ *                       detail: { type: string, example: "Sick · back 14 Jul", description: "For upcoming leave this reads \"from {date} · back {date}\" instead, so it's never mistaken for someone already away." }
  *       401: { $ref: '#/components/responses/Unauthorized' }
  */
 router.get(
@@ -114,19 +117,26 @@ router.get(
     }
 
     const { rows } = await pool.query(
-      `SELECT u.name, lt.name AS type_name, r.end_date
+      `SELECT u.name, d.name AS dept_name, lt.name AS type_name, r.start_date, r.end_date,
+              (r.start_date > CURRENT_DATE) AS starting_soon
      FROM leave_requests r
      JOIN users u ON u.id = r.user_id
+     LEFT JOIN departments d ON d.id = u.department_id
      JOIN leave_types lt ON lt.id = r.leave_type_id
      WHERE ${where}
-     ORDER BY r.start_date ASC LIMIT 6`,
+     ORDER BY r.start_date ASC LIMIT ${deptScoped ? 6 : 10}`,
       params
     );
+    const fmt = (d) => new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
     res.json({
       away: rows.map((r) => ({
         name: r.name,
         initials: initials(r.name),
-        detail: `${r.type_name} · back ${new Date(r.end_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`
+        department: deptScoped ? null : r.dept_name,
+        startingSoon: r.starting_soon,
+        detail: r.starting_soon
+          ? `${r.type_name} · from ${fmt(r.start_date)}, back ${fmt(r.end_date)}`
+          : `${r.type_name} · back ${fmt(r.end_date)}`
       }))
     });
   })

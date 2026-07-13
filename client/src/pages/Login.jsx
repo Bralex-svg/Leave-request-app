@@ -100,7 +100,7 @@ export default function Login() {
               setEmail(e.target.value);
               setError(null);
             }}
-            placeholder="you@dnmc.edu.gh"
+            placeholder="you@yourorganisation.com"
             className="mb-3.5 w-full rounded-[10px] border border-inputborder bg-white px-3.5 py-3 text-[14px]"
           />
 

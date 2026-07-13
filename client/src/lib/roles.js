@@ -29,5 +29,5 @@ export const ROLE_OPTIONS = [
   { key: 'staff', label: 'Staff member', sub: 'Request & track leave' },
   { key: 'hod', label: 'Head of Dept.', sub: 'Approve requests' },
   { key: 'hr', label: 'HR / Admin', sub: 'Manage & finalise' },
-  { key: 'principal', label: 'Principal', sub: 'Reports & insights' }
+  { key: 'principal', label: 'Executive', sub: 'Reports & insights' }
 ];
