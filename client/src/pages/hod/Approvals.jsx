@@ -24,7 +24,7 @@ export default function Approvals() {
     setBusyId(id);
     try {
       const data = await api.post(`/requests/${id}/approve`);
-      const verb = data.status === 'approved' ? 'approved' : 'forwarded to HR';
+      const verb = data.status === 'approved' ? 'approved — they’ve been emailed' : 'forwarded to HR — HR and the staff member have been emailed';
       showToast(`${data.staffFirstName}’s ${data.typeName.toLowerCase()} leave ${verb}`);
       bumpRefresh();
     } catch (err) {
@@ -39,7 +39,7 @@ export default function Approvals() {
     setBusyId(id);
     try {
       const data = await api.post(`/requests/${id}/decline`, { note });
-      showToast(`${data.staffFirstName}’s ${data.typeName.toLowerCase()} leave declined`);
+      showToast(`${data.staffFirstName}’s ${data.typeName.toLowerCase()} leave declined — they’ve been emailed`);
       setDeclining(null);
       bumpRefresh();
     } catch (err) {

@@ -50,7 +50,7 @@ export default function NewRequestModal() {
       await api.post('/requests', { leaveTypeId: form.typeId, startDate: form.start, endDate: form.end, reason: form.reason });
       closeNewRequest();
       bumpRefresh();
-      showToast('Request submitted — sent to your Head of Department');
+      showToast('Request submitted — your HoD has been emailed');
     } catch (err) {
       setError(err.message);
     } finally {

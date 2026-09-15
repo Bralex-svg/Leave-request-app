@@ -9,6 +9,7 @@ export default function Settings() {
   const [types, setTypes] = useState([]);
   const [nameDraft, setNameDraft] = useState('');
   const debounceRef = useRef(null);
+  const entitlementDebounceRef = useRef({});
 
   useEffect(() => {
     api.get('/leave-types?active=false').then((d) => setTypes(d.leaveTypes));
@@ -37,6 +38,15 @@ export default function Settings() {
     await api.patch(`/leave-types/${t.id}`, { active: !t.active });
   }
 
+  function handleEntitlementChange(t, rawValue) {
+    const entitlementDays = rawValue === '' ? null : Math.max(0, parseInt(rawValue, 10) || 0);
+    setTypes((prev) => prev.map((x) => (x.id === t.id ? { ...x, entitlementDays } : x)));
+    clearTimeout(entitlementDebounceRef.current[t.id]);
+    entitlementDebounceRef.current[t.id] = setTimeout(() => {
+      api.patch(`/leave-types/${t.id}`, { entitlementDays });
+    }, 500);
+  }
+
   return (
     <div>
       <div className="mb-5">
@@ -63,7 +73,17 @@ export default function Settings() {
               <div className="font-semibold">
                 {t.emoji} {t.name}
               </div>
-              <div>{t.entitlementDays ? `${t.entitlementDays} days / yr` : 'Case by case'}</div>
+              <div className="flex items-center gap-1.5">
+                <input
+                  type="number"
+                  min="0"
+                  value={t.entitlementDays ?? ''}
+                  onChange={(e) => handleEntitlementChange(t, e.target.value)}
+                  placeholder="Case by case"
+                  className="w-[64px] rounded-[7px] border border-inputborder bg-sidebar px-2 py-1 text-[13px]"
+                />
+                {t.entitlementDays !== null && <span className="text-[12px] text-muted">days/yr</span>}
+              </div>
               <div className="text-[12.5px] text-muted">{t.approvalChain === 'hod_only' ? 'HoD only' : 'HoD → HR'}</div>
               <div>
                 <button

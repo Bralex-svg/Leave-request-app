@@ -3,15 +3,16 @@ import { pool } from '../db/pool.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
 import { inclusiveDays, initials } from '../lib/helpers.js';
 import { asyncHandler } from '../lib/asyncHandler.js';
+import { notifyRequestSubmitted, notifyForwardedToHr, notifyAutoApproved, notifyDeclined, notifyFinalised } from '../lib/notifications.js';
 
 const router = Router();
 
 const BASE_SELECT = `
-  SELECT r.id, r.start_date, r.end_date, r.days, r.reason, r.status, r.created_at,
+  SELECT r.id, r.org_id, r.start_date, r.end_date, r.days, r.reason, r.status, r.created_at,
          lt.id AS lt_id, lt.key AS type_key, lt.name AS type_name, lt.emoji AS type_emoji,
          lt.tint AS type_tint, lt.color AS type_color, lt.approval_chain, lt.entitlement_days,
-         u.id AS staff_id, u.name AS staff_name,
-         d.id AS dept_id, d.name AS dept_name, hod.name AS hod_name,
+         u.id AS staff_id, u.name AS staff_name, u.email AS staff_email,
+         d.id AS dept_id, d.name AS dept_name, hod.name AS hod_name, hod.email AS hod_email,
          b.entitlement AS bal_entitlement, b.used AS bal_used
   FROM leave_requests r
   JOIN leave_types lt ON lt.id = r.leave_type_id
@@ -163,6 +164,21 @@ router.post(
     const leaveType = typeRows[0];
     if (!leaveType) return res.status(400).json({ error: 'That leave type is not available.' });
 
+    const { rows: overlapRows } = await pool.query(
+      `SELECT r.start_date, r.end_date, lt.name AS type_name
+       FROM leave_requests r JOIN leave_types lt ON lt.id = r.leave_type_id
+       WHERE r.user_id = $1 AND r.status IN ('pending_hod', 'pending_hr', 'approved')
+         AND r.start_date <= $2 AND r.end_date >= $3`,
+      [req.user.id, endDate, startDate]
+    );
+    if (overlapRows.length) {
+      const o = overlapRows[0];
+      const fmt = (d) => (d instanceof Date ? d.toISOString().slice(0, 10) : d);
+      return res.status(400).json({
+        error: `You already have ${o.type_name.toLowerCase()} leave from ${fmt(o.start_date)} to ${fmt(o.end_date)} that overlaps with these dates.`
+      });
+    }
+
     const year = getLeaveYear(startDate);
     if (leaveType.entitlement_days !== null) {
       const { rows: balRows } = await pool.query(
@@ -183,6 +199,7 @@ router.post(
     );
 
     const { rows: full } = await pool.query(`${BASE_SELECT} WHERE r.id = $1`, [rows[0].id]);
+    notifyRequestSubmitted(full[0]);
     res.status(201).json({ request: serializeRow(full[0]) });
   })
 );
@@ -311,6 +328,8 @@ router.post(
 
       await client.query(`UPDATE leave_requests SET status = $1 WHERE id = $2`, [finalStatus, row.id]);
       await client.query('COMMIT');
+      if (finalStatus === 'approved') notifyAutoApproved(row);
+      else notifyForwardedToHr(row);
       res.json({ status: finalStatus, staffFirstName: row.staff_name.split(' ')[0], typeName: row.type_name });
     } catch (err) {
       await client.query('ROLLBACK');
@@ -370,6 +389,7 @@ router.post(
       );
       await client.query(`UPDATE leave_requests SET status = 'declined' WHERE id = $1`, [row.id]);
       await client.query('COMMIT');
+      notifyDeclined(row, (req.body && req.body.note) || '');
       res.json({ status: 'declined', staffFirstName: row.staff_name.split(' ')[0], typeName: row.type_name });
     } catch (err) {
       await client.query('ROLLBACK');
@@ -421,6 +441,7 @@ router.post(
       await bumpBalance(client, row);
       await client.query(`UPDATE leave_requests SET status = 'approved' WHERE id = $1`, [row.id]);
       await client.query('COMMIT');
+      notifyFinalised(row);
       res.json({ status: 'approved', staffFirstName: row.staff_name.split(' ')[0], typeName: row.type_name });
     } catch (err) {
       await client.query('ROLLBACK');

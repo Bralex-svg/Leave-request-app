@@ -60,8 +60,12 @@ router.get(
  * /leave-types/{id}:
  *   patch:
  *     tags: [Leave types]
- *     summary: Activate or deactivate a leave type
- *     description: HR only. Used by the leave policy toggle on the Settings & branding screen.
+ *     summary: Update a leave type's policy
+ *     description: >
+ *       HR only. Used by the leave policy panel on the Settings & branding screen to toggle a
+ *       type active/inactive and/or change its yearly entitlement. Changing `entitlementDays`
+ *       also updates the entitlement on every staff member's balance for the current leave year
+ *       (balances for future years pick up the new default automatically when first created).
  *     security: [{ cookieAuth: [] }]
  *     parameters:
  *       - in: path
@@ -74,16 +78,16 @@ router.get(
  *         application/json:
  *           schema:
  *             type: object
- *             required: [active]
  *             properties:
  *               active: { type: boolean }
+ *               entitlementDays: { type: integer, nullable: true, description: "Days per year, or null for case-by-case." }
  *     responses:
  *       200:
  *         description: Updated leave type.
  *         content:
  *           application/json:
  *             schema: { type: object, properties: { leaveType: { $ref: '#/components/schemas/LeaveType' } } }
- *       400: { description: "`active` was not a boolean", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+ *       400: { description: Neither field was provided, or a field was invalid, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
  *       401: { $ref: '#/components/responses/Unauthorized' }
  *       403: { $ref: '#/components/responses/Forbidden' }
  *       404: { $ref: '#/components/responses/NotFound' }
@@ -93,14 +97,52 @@ router.patch(
   requireAuth,
   requireRole('hr'),
   asyncHandler(async (req, res) => {
-    const { active } = req.body || {};
-    if (typeof active !== 'boolean') return res.status(400).json({ error: 'active must be true or false.' });
-    const { rows } = await pool.query(
-      `UPDATE leave_types SET active = $1 WHERE id = $2 AND org_id = $3 RETURNING *`,
-      [active, req.params.id, req.user.org_id]
-    );
-    if (!rows.length) return res.status(404).json({ error: 'Leave type not found.' });
-    res.json({ leaveType: serialize(rows[0]) });
+    const { active, entitlementDays } = req.body || {};
+    if (active === undefined && entitlementDays === undefined) {
+      return res.status(400).json({ error: 'Nothing to update.' });
+    }
+    if (active !== undefined && typeof active !== 'boolean') {
+      return res.status(400).json({ error: 'active must be true or false.' });
+    }
+    if (entitlementDays !== undefined && entitlementDays !== null && (!Number.isInteger(entitlementDays) || entitlementDays < 0)) {
+      return res.status(400).json({ error: 'entitlementDays must be a non-negative whole number, or null for case-by-case.' });
+    }
+
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      const { rows: existing } = await client.query(
+        `SELECT * FROM leave_types WHERE id = $1 AND org_id = $2 FOR UPDATE`,
+        [req.params.id, req.user.org_id]
+      );
+      if (!existing.length) {
+        await client.query('ROLLBACK');
+        return res.status(404).json({ error: 'Leave type not found.' });
+      }
+      const current = existing[0];
+      const nextActive = active !== undefined ? active : current.active;
+      const nextEntitlement = entitlementDays !== undefined ? entitlementDays : current.entitlement_days;
+
+      const { rows } = await client.query(
+        `UPDATE leave_types SET active = $1, entitlement_days = $2 WHERE id = $3 RETURNING *`,
+        [nextActive, nextEntitlement, current.id]
+      );
+
+      if (entitlementDays !== undefined && entitlementDays !== current.entitlement_days) {
+        await client.query(
+          `UPDATE balances SET entitlement = $1 WHERE leave_type_id = $2 AND year = extract(year FROM now())::int`,
+          [nextEntitlement ?? 0, current.id]
+        );
+      }
+
+      await client.query('COMMIT');
+      res.json({ leaveType: serialize(rows[0]) });
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
   })
 );
 

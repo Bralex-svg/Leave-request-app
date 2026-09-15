@@ -7,8 +7,6 @@ import { formatRange, STATUS_CHIP } from '../../lib/format';
 import { getGreeting, firstName as getFirstName } from '../../lib/greeting';
 import AwayList from '../../components/AwayList';
 
-const BALANCE_TYPES = ['annual', 'sick', 'casual', 'study'];
-
 export default function StaffOverview() {
   const { user } = useAuth();
   const { openNewRequest, openDetail, refreshKey } = useUI();
@@ -26,7 +24,6 @@ export default function StaffOverview() {
   const firstName = getFirstName(user.name);
   const greeting = getGreeting();
   const todayLine = new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-  const balanceCards = BALANCE_TYPES.map((key) => balances.find((b) => b.key === key)).filter(Boolean);
   const recent = requests.slice(0, 3);
 
   const today = new Date();
@@ -57,7 +54,7 @@ export default function StaffOverview() {
       </div>
 
       <div className="mb-7 grid grid-cols-2 gap-3.5 lg:grid-cols-4">
-        {balanceCards.map((b) => (
+        {balances.map((b) => (
           <div key={b.key} className="rounded-card border border-border bg-surface p-[18px]">
             <div className="mb-3 flex items-center justify-between">
               <div className="text-[12.5px] font-bold uppercase tracking-wider text-muted">{b.name}</div>

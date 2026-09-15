@@ -27,7 +27,7 @@ export default function AllRequests() {
     setBusyId(id);
     try {
       const data = await api.post(`/requests/${id}/finalise`);
-      showToast(`${data.staffFirstName}’s ${data.typeName.toLowerCase()} leave approved — balance updated`);
+      showToast(`${data.staffFirstName}’s ${data.typeName.toLowerCase()} leave approved — balance updated and staff emailed`);
       bumpRefresh();
     } catch (err) {
       showToast(err.message);
