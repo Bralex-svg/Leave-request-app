@@ -3,6 +3,9 @@ import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import swaggerUi from 'swagger-ui-express';
+import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
 import { pool } from './db/pool.js';
 import { requireAuth } from './middleware/auth.js';
 import { serializeUser } from './lib/helpers.js';
@@ -20,6 +23,7 @@ import insightsRoutes from './routes/insights.js';
 
 dotenv.config();
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 
 app.use(cors({ origin: process.env.CLIENT_ORIGIN || 'http://localhost:5173', credentials: true }));
@@ -61,6 +65,15 @@ app.use('/api/leave-types', leaveTypeRoutes);
 app.use('/api/departments', departmentRoutes);
 app.use('/api/organisation', organisationRoutes);
 app.use('/api/insights', insightsRoutes);
+
+// Serves the built client (client/dist) when present, so one deployed
+// service can host both the API and the frontend. A no-op in local dev,
+// where the client runs as its own separate Vite dev server instead.
+const clientDist = path.join(__dirname, '../../client/dist');
+if (fs.existsSync(path.join(clientDist, 'index.html'))) {
+  app.use(express.static(clientDist));
+  app.get(/^(?!\/api).*/, (req, res) => res.sendFile(path.join(clientDist, 'index.html')));
+}
 
 app.use((req, res) => res.status(404).json({ error: 'Not found.' }));
 

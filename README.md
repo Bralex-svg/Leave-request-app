@@ -153,12 +153,19 @@ With the API running, interactive Swagger UI docs for every endpoint are at:
 
 ## Deploying
 
-For anything beyond local development:
+The server serves the built client itself (`server/src/index.js` serves `client/dist/` and falls back to `index.html` for client-side routes whenever a build is present), so the whole app is one deployable service — no separate static host or reverse proxy needed. This also keeps the login cookie same-origin, which matters: it's set with `SameSite=Lax`, which browsers won't send on cross-site requests, so splitting the frontend and API across two different domains would silently break sessions unless that's changed too.
 
-1. Run the API with `npm start` (not `npm run dev` — no need for `--watch` in production, and it avoids the brief request-reset window a hot-reloading dev server can hit mid-restart).
-2. Build the frontend with `npm run build` in `client/` and serve `client/dist/` from a static host or CDN, reverse-proxying `/api` to the Express server.
-3. Set a real, random `JWT_SECRET`, set `COOKIE_SECURE=true` once served over HTTPS, and point `CLIENT_ORIGIN`/`DATABASE_URL` at your production values.
-4. Run `npm run setup` once against the production database to create the schema (skip `seed`, or adapt it, if you don't want the demo fixture data in production).
+**Free-tier deployment (Render + Neon)** — a `render.yaml` Blueprint at the repo root defines the service:
+
+1. Create a free [Neon](https://neon.tech) Postgres project and grab its connection string (includes `?sslmode=require`).
+2. Run `npm run setup` once against it to create the schema and seed the demo org — from `server/`, with `DATABASE_URL` temporarily pointed at Neon instead of local Postgres (e.g. in PowerShell: `$env:DATABASE_URL="<neon-connection-string>"; npm run setup`).
+3. Generate a real `JWT_SECRET`: `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"`.
+4. On [Render](https://render.com): "New +" → "Blueprint" → connect this repo. Render reads `render.yaml` and prompts for the `sync: false` values: `DATABASE_URL` (step 1), `JWT_SECRET` (step 3), and `SMTP_USER`/`SMTP_PASS`/`MAIL_FROM` (reuse the values from your local `server/.env`). Put in placeholders for `CLIENT_ORIGIN`/`APP_URL` for now.
+5. After the first deploy, note the assigned `https://*.onrender.com` URL, then set `CLIENT_ORIGIN` and `APP_URL` to that exact URL in the service's Environment settings (triggers a redeploy).
+
+Render's free tier spins down after ~15 minutes idle and cold-starts (~30–50s) on the next request — fine for a demo, worth knowing if you're the one testing it.
+
+**Deploying elsewhere instead**: `npm start` runs the API (not `npm run dev` — no need for `--watch`, and it avoids the brief request-reset window a hot-reloading dev server can hit mid-restart); `npm run build` in `client/` produces `client/dist/` for the server to pick up automatically; set `COOKIE_SECURE=true` once served over HTTPS and point `JWT_SECRET`/`DATABASE_URL`/`CLIENT_ORIGIN`/`APP_URL` at your real values.
 
 ## License
 
