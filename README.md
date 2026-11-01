@@ -93,38 +93,18 @@ The Vite dev server proxies `/api` to `http://localhost:4000`, so open **http://
 
 `server/.env` is git-ignored — never commit real secrets. `server/.env.example` is the checked-in template; copy it to `.env` and fill in real values per environment.
 
-## Demo profiles
+## Demo data
 
-The seed script ships with **two interchangeable demo profiles** — same underlying story (same staff, same requests, same balances), re-cast with different organisation branding, department names and job titles. Handy for demoing to different kinds of prospects without maintaining two codebases.
-
-| Profile | Organisation | Departments |
-|---|---|---|
-| `school` (default) | Damongo Nursing & Midwifery College | Clinical Nursing, Midwifery, Public Health, Administration |
-| `hospital` | Saint Anne's Hospital, Damongo | Nursing, Maternity & Midwifery, Public Health, Administration |
-
-### Switching profiles
+The seed script populates **Saint Anne's Hospital, Damongo** — departments: Nursing, Maternity & Midwifery, Public Health, Administration.
 
 ```bash
 cd server
-npm run setup:hospital   # wipes the DB and reseeds as the hospital
-# ...or...
-npm run setup:school     # wipes the DB and reseeds as the school
+npm run setup   # wipes the DB and reseeds the demo data
 ```
 
-Both are destructive (they drop and recreate every table), so this is a full reset each time, not a merge — pick whichever one you're demoing next. No restart of the API or frontend is needed; just reseed and refresh the browser.
+This is destructive (it drops and recreates every table), so it's a full reset each time. No restart of the API or frontend is needed; just reseed and refresh the browser.
 
 All seeded users share the password `password123`.
-
-**`school` logins**
-
-| Role | Email | Home screen |
-|---|---|---|
-| Staff | `afia.owusu@dnmc.edu.gh` | Overview |
-| Head of Department | `salifu.adam@dnmc.edu.gh` | Approvals |
-| HR | `mary.kipo@dnmc.edu.gh` | All requests |
-| Principal | `jk.nabila@dnmc.edu.gh` | Insights |
-
-**`hospital` logins**
 
 | Role | Email | Home screen |
 |---|---|---|
@@ -133,11 +113,9 @@ All seeded users share the password `password123`.
 | HR | `mary.kipo@stannes.health` | All requests |
 | Executive (Medical Director) | `jk.nabila@stannes.health` | Insights |
 
-The role card on the login screen is a UX affordance only — the API always derives the account's real role from the database and rejects the request if it doesn't match what was selected, with a message telling the user which role to pick instead. (The card itself always reads "Executive" regardless of profile — only the signed-in user's actual title, shown in the top bar, changes per organisation.)
+The role card on the login screen is a UX affordance only — the API always derives the account's real role from the database and rejects the request if it doesn't match what was selected, with a message telling the user which role to pick instead.
 
-### Adding another profile
-
-Each profile is a single file in `server/src/db/profiles/` exporting `{ orgName, departments, users, staffBalances, requests, deptHod, demoLogins }` — copy `hospital.js` as a starting point, register it in the `PROFILES` map at the top of `server/src/db/seed.js`, and add a matching `seed:<name>` / `setup:<name>` pair to `package.json`.
+The seed data lives in `server/src/db/profiles/hospital.js`, exporting `{ orgName, departments, users, staffBalances, requests, deptHod, demoLogins }`.
 
 ## API documentation
 
@@ -155,10 +133,8 @@ With the API running, interactive Swagger UI docs for every endpoint are at:
 | `npm run dev` | Start the API with `node --watch` (auto-restarts on file changes) |
 | `npm start` | Start the API without watch mode (production) |
 | `npm run migrate` | Drop and recreate the database schema |
-| `npm run seed` | Seed demo data using the default (`school`) profile |
-| `npm run seed:school` / `npm run seed:hospital` | Seed a specific demo profile — see [Demo profiles](#demo-profiles) |
+| `npm run seed` | Seed demo data — see [Demo data](#demo-data) |
 | `npm run setup` | `migrate` + `seed` in one step |
-| `npm run setup:school` / `npm run setup:hospital` | `migrate` + a specific profile's `seed` in one step |
 
 **`client/`**
 

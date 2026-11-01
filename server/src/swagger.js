@@ -18,6 +18,7 @@ const spec = swaggerJsdoc({
       { name: 'Balances' },
       { name: 'Staff' },
       { name: 'Leave types' },
+      { name: 'Departments' },
       { name: 'Organisation' },
       { name: 'Insights' }
     ],
@@ -150,6 +151,15 @@ const spec = swaggerJsdoc({
             sick: { type: 'string', example: '13 / 15' },
             casual: { type: 'string', example: '4 / 7' },
             study: { type: 'string', example: '15 / 20' }
+          }
+        },
+        Department: {
+          type: 'object',
+          properties: {
+            id: { type: 'integer' },
+            name: { type: 'string' },
+            hodUserId: { type: 'integer', nullable: true },
+            hodName: { type: 'string', nullable: true }
           }
         },
         Organisation: {

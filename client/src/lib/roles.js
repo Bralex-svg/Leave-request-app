@@ -26,8 +26,8 @@ export const NAV_BY_ROLE = {
 };
 
 export const ROLE_OPTIONS = [
-  { key: 'staff', label: 'Staff member', sub: 'Request & track leave' },
-  { key: 'hod', label: 'Head of Dept.', sub: 'Approve requests' },
-  { key: 'hr', label: 'HR / Admin', sub: 'Manage & finalise' },
-  { key: 'principal', label: 'Executive', sub: 'Reports & insights' }
+  { key: 'staff', label: 'Staff member', sub: 'Request & track leave', mono: 'S' },
+  { key: 'hod', label: 'Head of Dept.', sub: 'Approve requests', mono: 'H' },
+  { key: 'hr', label: 'HR / Admin', sub: 'Manage & finalise', mono: 'A' },
+  { key: 'principal', label: 'Executive', sub: 'Reports & insights', mono: 'E' }
 ];

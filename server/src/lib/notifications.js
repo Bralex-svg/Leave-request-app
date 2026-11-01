@@ -33,6 +33,38 @@ async function getHrRecipients(orgId) {
   return rows;
 }
 
+export async function notifyPasswordReset({ email, name, resetUrl }) {
+  try {
+    await sendMail({
+      to: email,
+      subject: 'Reset your LeaveFlow password',
+      html: shell({
+        heading: 'Reset your password',
+        body: `Hi ${name.split(' ')[0]},<br><br>We got a request to reset your LeaveFlow password. This link expires in 1 hour. If you didn't request this, you can ignore this email.`,
+        cta: { href: resetUrl, label: 'Reset password' }
+      })
+    });
+  } catch (err) {
+    console.error('[notifications] notifyPasswordReset failed:', err.message);
+  }
+}
+
+export async function notifyStaffWelcome({ email, name, orgName, tempPassword }) {
+  try {
+    await sendMail({
+      to: email,
+      subject: `Welcome to ${orgName} on LeaveFlow`,
+      html: shell({
+        heading: `Your LeaveFlow account is ready`,
+        body: `Hi ${name.split(' ')[0]},<br><br>${orgName} has set you up on LeaveFlow to request and track leave.<br><br>Sign in with:<br>Email: <b>${email}</b><br>Temporary password: <b>${tempPassword}</b>`,
+        cta: { href: `${APP_URL}/login`, label: 'Sign in' }
+      })
+    });
+  } catch (err) {
+    console.error('[notifications] notifyStaffWelcome failed:', err.message);
+  }
+}
+
 export async function notifyRequestSubmitted(row) {
   try {
     await sendMail({

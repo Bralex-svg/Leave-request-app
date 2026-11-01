@@ -7,31 +7,9 @@ const router = Router();
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
-function serialize(o) {
+export function serialize(o) {
   return { id: o.id, name: o.name, leaveYearStartMonth: MONTHS[o.leave_year_start_month - 1] };
 }
-
-/**
- * @openapi
- * /organisation/public:
- *   get:
- *     tags: [Organisation]
- *     summary: Get the organisation's public name for the (unauthenticated) login screen
- *     description: This deployment is single-tenant per database, so this surfaces the first organisation. No auth required.
- *     responses:
- *       200:
- *         description: Public branding info.
- *         content:
- *           application/json:
- *             schema: { type: object, properties: { name: { type: string } } }
- */
-router.get(
-  '/public',
-  asyncHandler(async (req, res) => {
-    const { rows } = await pool.query(`SELECT name FROM organisations ORDER BY id LIMIT 1`);
-    res.json({ name: rows[0]?.name ?? 'LeaveFlow' });
-  })
-);
 
 /**
  * @openapi

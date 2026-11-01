@@ -1,3 +1,15 @@
+import { randomInt } from 'crypto';
+
+const TEMP_PASSWORD_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+
+export function generateTempPassword(length = 10) {
+  let pw = '';
+  for (let i = 0; i < length; i++) {
+    pw += TEMP_PASSWORD_CHARS[randomInt(TEMP_PASSWORD_CHARS.length)];
+  }
+  return pw;
+}
+
 export function initials(name) {
   return name
     .split(' ')

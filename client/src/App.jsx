@@ -3,6 +3,9 @@ import { useAuth } from './context/AuthContext';
 import { OrganisationProvider } from './context/OrganisationContext';
 import { ROLE_HOME } from './lib/roles';
 import Login from './pages/Login';
+import Signup from './pages/Signup';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 import AppShell from './components/AppShell';
 import StaffOverview from './pages/staff/Overview';
 import MyRequests from './pages/staff/MyRequests';
@@ -10,6 +13,7 @@ import Approvals from './pages/hod/Approvals';
 import AllRequests from './pages/hr/AllRequests';
 import Balances from './pages/hr/Balances';
 import Settings from './pages/hr/Settings';
+import Onboarding from './pages/hr/Onboarding';
 import Insights from './pages/principal/Insights';
 
 function ProtectedRoute({ roles, children }) {
@@ -32,6 +36,19 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={user ? <Navigate to={ROLE_HOME[user.role]} replace /> : <Login />} />
+      <Route path="/signup" element={user ? <Navigate to={ROLE_HOME[user.role]} replace /> : <Signup />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
+      <Route
+        path="/onboarding"
+        element={
+          <ProtectedRoute roles={['hr']}>
+            <OrganisationProvider>
+              <Onboarding />
+            </OrganisationProvider>
+          </ProtectedRoute>
+        }
+      />
       <Route
         element={
           <ProtectedRoute>

@@ -21,12 +21,18 @@ export function AuthProvider({ children }) {
     return data.user;
   }, []);
 
+  const signup = useCallback(async (orgName, adminName, adminEmail, adminPassword) => {
+    const data = await api.post('/auth/signup', { orgName, adminName, adminEmail, adminPassword });
+    setUser(data.user);
+    return data.user;
+  }, []);
+
   const logout = useCallback(async () => {
     await api.post('/auth/logout');
     setUser(null);
   }, []);
 
-  return <AuthContext.Provider value={{ user, loading, login, logout, setUser }}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={{ user, loading, login, signup, logout, setUser }}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {

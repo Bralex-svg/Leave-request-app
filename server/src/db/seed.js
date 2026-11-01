@@ -1,31 +1,12 @@
 import bcrypt from 'bcryptjs';
 import { pool } from './pool.js';
-import schoolProfile from './profiles/school.js';
-import hospitalProfile from './profiles/hospital.js';
+import profile from './profiles/hospital.js';
+import { DEFAULT_LEAVE_TYPES } from './defaultLeaveTypes.js';
 
-const PROFILES = { school: schoolProfile, hospital: hospitalProfile };
 const DEMO_PASSWORD = 'password123';
 const YEAR = 2026;
 
-const LEAVE_TYPES = [
-  { key: 'annual', name: 'Annual', emoji: '🌴', tint: '#E2F0E9', color: '#1F5C4D', entitlement: 30, chain: 'hod_then_hr', active: true },
-  { key: 'sick', name: 'Sick', emoji: '🩺', tint: '#FAE5E1', color: '#B0563F', entitlement: 15, chain: 'hod_only', active: true },
-  { key: 'casual', name: 'Casual', emoji: '☕', tint: '#FFF3D6', color: '#C9A227', entitlement: 7, chain: 'hod_only', active: true },
-  { key: 'study', name: 'Study', emoji: '📚', tint: '#E3EEFA', color: '#2B5C8A', entitlement: 20, chain: 'hod_then_hr', active: true },
-  { key: 'maternity', name: 'Maternity', emoji: '👶', tint: '#F3E5F5', color: '#8E44AD', entitlement: 90, chain: 'hod_then_hr', active: true },
-  { key: 'paternity', name: 'Paternity', emoji: '👨‍👧', tint: '#E3EEFA', color: '#2B5C8A', entitlement: 10, chain: 'hod_then_hr', active: true },
-  { key: 'compassionate', name: 'Compassionate', emoji: '🕊️', tint: '#EFEDE6', color: '#4A554F', entitlement: 5, chain: 'hod_then_hr', active: true },
-  { key: 'unpaid', name: 'Unpaid', emoji: '⏸️', tint: '#EFEDE6', color: '#4A554F', entitlement: null, chain: 'hod_then_hr', active: false }
-];
-
-async function seed(profileName) {
-  const profile = PROFILES[profileName];
-  if (!profile) {
-    console.error(`Unknown seed profile "${profileName}". Available: ${Object.keys(PROFILES).join(', ')}`);
-    process.exitCode = 1;
-    return;
-  }
-
+async function seed() {
   const { orgName, departments: DEPARTMENTS, users: USERS, staffBalances: STAFF_BALANCES, requests: REQUESTS, deptHod, demoLogins } = profile;
 
   const client = await pool.connect();
@@ -64,7 +45,7 @@ async function seed(profileName) {
 
     const typeIds = {};
     let sortOrder = 0;
-    for (const t of LEAVE_TYPES) {
+    for (const t of DEFAULT_LEAVE_TYPES) {
       const r = await client.query(
         `INSERT INTO leave_types (org_id, key, name, entitlement_days, approval_chain, active, emoji, color, tint, sort_order)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id`,
@@ -76,7 +57,7 @@ async function seed(profileName) {
     // Balances: seed all leave types for all staff/hod/hr/principal users so every screen has data.
     for (const u of USERS) {
       const uid = userIds[u.name];
-      for (const t of LEAVE_TYPES) {
+      for (const t of DEFAULT_LEAVE_TYPES) {
         const entitlement = t.entitlement ?? 0;
         let used = 0;
         const known = STAFF_BALANCES[u.name];
@@ -95,7 +76,7 @@ async function seed(profileName) {
       const staffUser = USERS.find((u) => u.name === req.staff);
       const uid = userIds[req.staff];
       const typeId = typeIds[req.type];
-      const typeDef = LEAVE_TYPES.find((t) => t.key === req.type);
+      const typeDef = DEFAULT_LEAVE_TYPES.find((t) => t.key === req.type);
       const hodUserId = userIds[deptHod[staffUser.dept]];
 
       const reqRes = await client.query(
@@ -135,7 +116,7 @@ async function seed(profileName) {
     }
 
     await client.query('COMMIT');
-    console.log(`Seed complete — profile "${profileName}" (${orgName}).`);
+    console.log(`Seed complete — ${orgName}.`);
     console.log(`Demo password for all seeded users: ${DEMO_PASSWORD}`);
     console.log('Demo logins:');
     for (const [role, email] of demoLogins) {
@@ -151,5 +132,4 @@ async function seed(profileName) {
   }
 }
 
-const profileArg = process.argv[2] || process.env.SEED_PROFILE || 'school';
-seed(profileArg);
+seed();

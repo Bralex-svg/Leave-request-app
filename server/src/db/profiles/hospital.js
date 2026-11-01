@@ -1,7 +1,4 @@
-// Seed profile: Saint Anne's Hospital, Damongo — same demo structure as the school
-// profile (same people, balances and request shapes) so both are equally polished,
-// just re-cast with hospital departments, clinical job titles and an executive
-// title instead of academic ones.
+// Seed profile: Saint Anne's Hospital, Damongo.
 
 export default {
   orgName: 'Saint Annes Hospital, Damongo',

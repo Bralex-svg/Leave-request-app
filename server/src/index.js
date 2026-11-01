@@ -14,6 +14,7 @@ import requestRoutes from './routes/requests.js';
 import balanceRoutes from './routes/balances.js';
 import staffRoutes from './routes/staff.js';
 import leaveTypeRoutes from './routes/leaveTypes.js';
+import departmentRoutes from './routes/departments.js';
 import organisationRoutes from './routes/organisation.js';
 import insightsRoutes from './routes/insights.js';
 
@@ -57,6 +58,7 @@ app.use('/api/requests', requestRoutes);
 app.use('/api/balances', balanceRoutes);
 app.use('/api/staff', staffRoutes);
 app.use('/api/leave-types', leaveTypeRoutes);
+app.use('/api/departments', departmentRoutes);
 app.use('/api/organisation', organisationRoutes);
 app.use('/api/insights', insightsRoutes);
 

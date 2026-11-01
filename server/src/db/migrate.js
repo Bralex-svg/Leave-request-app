@@ -6,6 +6,7 @@ import { pool } from './pool.js';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const RESET_SQL = `
+DROP TABLE IF EXISTS password_resets CASCADE;
 DROP TABLE IF EXISTS balances CASCADE;
 DROP TABLE IF EXISTS approvals CASCADE;
 DROP TABLE IF EXISTS leave_requests CASCADE;
