@@ -20,6 +20,10 @@ export default function Onboarding() {
   const [newDeptName, setNewDeptName] = useState('');
   const [deptError, setDeptError] = useState(null);
   const [addingDept, setAddingDept] = useState(false);
+  const [editingDeptId, setEditingDeptId] = useState(null);
+  const [editDeptName, setEditDeptName] = useState('');
+  const [renameError, setRenameError] = useState(null);
+  const [renaming, setRenaming] = useState(false);
 
   const [staffTab, setStaffTab] = useState('manual');
   const [manualForm, setManualForm] = useState(EMPTY_MANUAL_FORM);
@@ -140,6 +144,37 @@ export default function Onboarding() {
     }
   }
 
+  function startEditDept(d) {
+    setEditingDeptId(d.id);
+    setEditDeptName(d.name);
+    setRenameError(null);
+  }
+
+  function cancelEditDept() {
+    setEditingDeptId(null);
+    setEditDeptName('');
+    setRenameError(null);
+  }
+
+  async function saveEditDept(deptId) {
+    if (!editDeptName.trim()) {
+      setRenameError('Department name cannot be empty.');
+      return;
+    }
+    setRenaming(true);
+    setRenameError(null);
+    try {
+      const { department } = await api.patch(`/departments/${deptId}`, { name: editDeptName.trim() });
+      setDepartments((prev) => prev.map((d) => (d.id === deptId ? department : d)).sort((a, b) => a.name.localeCompare(b.name)));
+      setEditingDeptId(null);
+      setEditDeptName('');
+    } catch (err) {
+      setRenameError(err.message);
+    } finally {
+      setRenaming(false);
+    }
+  }
+
   async function assignHod(deptId, hodUserId) {
     setHodAssigning((prev) => ({ ...prev, [deptId]: true }));
     try {
@@ -161,6 +196,13 @@ export default function Onboarding() {
         </div>
         <div className="font-display text-[17px] font-semibold tracking-tight text-appbg">LeaveFlow</div>
         <div className="flex-1" />
+        <button
+          onClick={() => navigate(ROLE_HOME.hr)}
+          className="text-[12.5px] font-semibold text-white/70 hover:text-white"
+        >
+          ← Back to dashboard
+        </button>
+        <div className="mx-3 h-4 w-px bg-white/20" />
         <div className="text-[12.5px] text-white/60">Signed in as {user.name}</div>
       </header>
 
@@ -168,18 +210,24 @@ export default function Onboarding() {
         <div className="mb-6 flex items-center gap-2">
           {STEPS.map((label, i) => (
             <div key={label} className="flex flex-1 items-center gap-2">
-              <div
-                className="grid h-6 w-6 flex-shrink-0 place-items-center rounded-full text-[11px] font-bold"
-                style={{
-                  background: i <= step ? '#1F5C4D' : '#E7E4DC',
-                  color: i <= step ? '#F4F3EF' : '#6B7A74'
-                }}
+              <button
+                onClick={() => setStep(i)}
+                className="flex items-center gap-2"
+                title={`Go to ${label}`}
               >
-                {i + 1}
-              </div>
-              <div className="text-[12.5px] font-semibold" style={{ color: i <= step ? '#1C2321' : '#A8A69E' }}>
-                {label}
-              </div>
+                <div
+                  className="grid h-6 w-6 flex-shrink-0 place-items-center rounded-full text-[11px] font-bold"
+                  style={{
+                    background: i <= step ? '#1F5C4D' : '#E7E4DC',
+                    color: i <= step ? '#F4F3EF' : '#6B7A74'
+                  }}
+                >
+                  {i + 1}
+                </div>
+                <div className="text-[12.5px] font-semibold" style={{ color: i <= step ? '#1C2321' : '#A8A69E' }}>
+                  {label}
+                </div>
+              </button>
               {i < STEPS.length - 1 && <div className="h-px flex-1" style={{ background: i < step ? '#1F5C4D' : '#E7E4DC' }} />}
             </div>
           ))}
@@ -255,12 +303,48 @@ export default function Onboarding() {
             {deptError && <div className="mt-2 text-[12.5px] font-semibold text-danger">{deptError}</div>}
 
             <div className="mt-4 flex flex-col gap-1.5">
-              {departments.map((d) => (
-                <div key={d.id} className="flex items-center justify-between rounded-[9px] border border-border bg-sidebar px-3.5 py-2.5 text-[13.5px]">
-                  <span className="font-semibold">{d.name}</span>
-                  {d.hodName && <span className="text-[12px] text-muted">HoD: {d.hodName}</span>}
-                </div>
-              ))}
+              {departments.map((d) =>
+                editingDeptId === d.id ? (
+                  <div key={d.id} className="rounded-[9px] border border-primary bg-sidebar px-3.5 py-2.5">
+                    <div className="flex items-center gap-2">
+                      <input
+                        autoFocus
+                        value={editDeptName}
+                        onChange={(e) => setEditDeptName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') saveEditDept(d.id);
+                          if (e.key === 'Escape') cancelEditDept();
+                        }}
+                        className="flex-1 rounded-[7px] border border-inputborder bg-white px-2.5 py-1.5 text-[13.5px]"
+                      />
+                      <button
+                        onClick={() => saveEditDept(d.id)}
+                        disabled={renaming}
+                        className="rounded-[7px] bg-primary px-3 py-1.5 text-[12.5px] font-bold text-appbg disabled:opacity-60"
+                      >
+                        Save
+                      </button>
+                      <button
+                        onClick={cancelEditDept}
+                        className="rounded-[7px] border border-inputborder bg-white px-3 py-1.5 text-[12.5px] font-semibold text-ink-secondary"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                    {renameError && <div className="mt-1.5 text-[12px] font-semibold text-danger">{renameError}</div>}
+                  </div>
+                ) : (
+                  <div key={d.id} className="flex items-center justify-between rounded-[9px] border border-border bg-sidebar px-3.5 py-2.5 text-[13.5px]">
+                    <span className="font-semibold">{d.name}</span>
+                    <div className="flex items-center gap-3">
+                      {d.hodName && <span className="text-[12px] text-muted">HoD: {d.hodName}</span>}
+                      <button onClick={() => startEditDept(d)} className="text-[12px] font-semibold text-primary">
+                        Rename
+                      </button>
+                    </div>
+                  </div>
+                )
+              )}
               {!departments.length && <div className="text-[13px] text-muted">No departments yet — add your first one above.</div>}
             </div>
           </div>

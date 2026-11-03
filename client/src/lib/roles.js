@@ -17,6 +17,7 @@ export const NAV_BY_ROLE = {
   hr: [
     { to: '/all-requests', label: 'All requests', icon: '☰' },
     { to: '/balances', label: 'Staff balances', icon: '◫' },
+    { to: '/onboarding', label: 'Organisation setup', icon: '🏢' },
     { to: '/settings', label: 'Settings & branding', icon: '⚙' }
   ],
   principal: [

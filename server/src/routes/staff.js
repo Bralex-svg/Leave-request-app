@@ -234,7 +234,9 @@ router.post(
 
     const { rows: existing } = await pool.query(`SELECT 1 FROM users WHERE lower(email) = lower($1)`, [email.trim()]);
     if (existing.length) {
-      return res.status(409).json({ error: 'An account already exists for that email.' });
+      return res.status(409).json({
+        error: 'That email already has a LeaveFlow account — each email can only be registered once, across every organisation on the platform. Use a different email, or check whether this person already has access.'
+      });
     }
 
     const client = await pool.connect();
@@ -254,7 +256,9 @@ router.post(
     } catch (err) {
       await client.query('ROLLBACK');
       if (err.code === '23505') {
-        return res.status(409).json({ error: 'An account already exists for that email.' });
+        return res.status(409).json({
+          error: 'That email already has a LeaveFlow account — each email can only be registered once, across every organisation on the platform. Use a different email, or check whether this person already has access.'
+        });
       }
       throw err;
     } finally {
@@ -373,7 +377,7 @@ router.post(
       }
       const { rows: existing } = await pool.query(`SELECT 1 FROM users WHERE lower(email) = lower($1)`, [email]);
       if (existing.length) {
-        errors.push({ row: rowNum, email, message: 'already registered to an existing account.' });
+        errors.push({ row: rowNum, email, message: 'already has a LeaveFlow account (emails can only be registered once, platform-wide).' });
         continue;
       }
 
@@ -397,7 +401,7 @@ router.post(
       } catch (err) {
         await client.query('ROLLBACK');
         if (err.code === '23505') {
-          errors.push({ row: rowNum, email, message: 'already registered to an existing account.' });
+          errors.push({ row: rowNum, email, message: 'already has a LeaveFlow account (emails can only be registered once, platform-wide).' });
         } else {
           errors.push({ row: rowNum, email, message: 'unexpected error creating this row.' });
         }

@@ -159,7 +159,7 @@ router.post(
 
     const { rows: existing } = await pool.query(`SELECT 1 FROM users WHERE lower(email) = lower($1)`, [adminEmail.trim()]);
     if (existing.length) {
-      return res.status(409).json({ error: 'An account already exists for that email. Sign in instead, or use a different email to create a new organisation.' });
+      return res.status(409).json({ error: 'That email already has a LeaveFlow account — each email can only be registered once, across every organisation on the platform. Sign in instead, or use a different email to create a new organisation.' });
     }
 
     const client = await pool.connect();
@@ -197,7 +197,7 @@ router.post(
     } catch (err) {
       await client.query('ROLLBACK');
       if (err.code === '23505') {
-        return res.status(409).json({ error: 'An account already exists for that email. Sign in instead, or use a different email to create a new organisation.' });
+        return res.status(409).json({ error: 'That email already has a LeaveFlow account — each email can only be registered once, across every organisation on the platform. Sign in instead, or use a different email to create a new organisation.' });
       }
       throw err;
     } finally {
