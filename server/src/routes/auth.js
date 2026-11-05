@@ -216,7 +216,7 @@ router.post(
  *       Always responds the same way whether or not the email matches an account,
  *       so the response can't be used to probe which emails are registered.
  *       If it does match, emails a reset link valid for 1 hour (also logged to the
- *       console if SMTP isn't configured — see server/src/lib/mailer.js).
+ *       console if RESEND_API_KEY isn't configured — see server/src/lib/mailer.js).
  *     requestBody:
  *       required: true
  *       content:
